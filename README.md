@@ -8,17 +8,6 @@ every metric computed over that same fixed set of sessions in every arm, compare
 with `coms.health.compare_arms` (2,000-resample bootstrap, 95% CI). A move only
 counts as real if the CI excludes 0 — everything else is noise.
 
-> **Correction applied:** an earlier pass of this report had two bugs in the
-> *measurement* code (not in the rankers themselves): organic CTR silently
-> dropped sessions with no organic impression instead of counting them as 0
-> (comparing different-sized populations across arms), and the click-log CTR
-> stats used a position correction that doesn't apply to this simulator's choice
-> model (inflating every estimate). Both are fixed; every number below is
-> regenerated. Fixing the first also **surfaced a real finding**: most of
-> personalization's apparent CTR effect turns out to come from a side effect of
-> its implementation (a wider candidate pool), not the per-user reordering
-> itself — see the second table.
-
 ## CTR by ranker combination
 
 | Ranker (cumulative) | Overall CTR | Δ vs. lexical (pp, 95% CI) | Organic CTR | Δ organic (pp, 95% CI) |
