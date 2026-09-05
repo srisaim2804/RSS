@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rss-usim"
+version = "0.1.0"
+description = "User simulation for the RSS marketplace: personas, query generation, choice model, user agents."
+requires-python = ">=3.11"
+dependencies = ["rss-coms", "numpy>=1.24"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.entry-points."rss.plugins"]
+usim = "usim.plugin"
+
+# Opt-in contrib group (loaded only via coms.infra.load_contrib() or a contrib: name).
+[project.entry-points."rss.contrib"]
+usim = "usim.contrib._loader"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]

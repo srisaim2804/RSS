@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rss-coms"
+version = "0.1.0"
+description = "Commons for the RSS marketplace simulation: contracts, interfaces, infra, health, correlated event log, transport, harness."
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+dashboards = ["streamlit>=1.30", "plotly>=5"]
+http = []          # transport uses only the stdlib
+test = ["pytest>=8"]
+
+# Opt-in contrib group (loaded only via coms.infra.load_contrib() or a contrib: name).
+[project.entry-points."rss.contrib"]
+coms = "coms.contrib._loader"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+rss-coms = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+dashboards = { features = ["dashboards"], solve-group = "default" }
+http = { features = ["http"], solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+
+[tool.pixi.tasks]

@@ -1,0 +1,12 @@
+# Core — require a maintainer review (branch protection should enforce CODEOWNERS).
+*                       @d3vdru
+/src/coms/contracts/    @d3vdru
+/src/coms/interfaces/   @d3vdru
+/src/coms/infra/        @d3vdru
+/src/coms/harness/      @d3vdru
+/src/coms/transport/    @d3vdru
+/src/coms/health/       @d3vdru
+/src/coms/trace/        @d3vdru
+
+# Contrib staging — lighter review (no required core owner; contributors own their folder).
+/src/coms/contrib/

@@ -1,0 +1,6 @@
+# Core — require a maintainer review (branch protection should enforce CODEOWNERS).
+*                    @d3vdru
+/src/mplc/           @d3vdru
+
+# Contrib staging — lighter review (no required core owner).
+/src/mplc/contrib/

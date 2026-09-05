@@ -1,0 +1,40 @@
+# Top-level system config — wires the four repos into one run.
+
+[run]
+rounds = 5
+seeds = [0]
+queries_per_round = 40
+
+[users]
+plugin = "usim"                 # entry-point name (rss-usim)
+n_users = 50
+choice_model = "independent_funnel"
+
+[sellers]
+enabled = true                  # false → two-party (search-only) mode
+plugin = "slrs"                 # rss-slrs
+n_sellers = 12
+
+[catalog]
+n_products = 60
+n_brands = 8
+
+[[marketplaces]]                # a list → multi-marketplace
+id = "mkt"
+plugin = "mplc"                 # rss-mplc
+transport = "inproc"            # or transport="http", host="10.0.0.7", port=8801
+ad_sourcing = "hosted"          # hosted (default) | rtb
+knowledge = "brand_perception"  # v1 knowledge signal
+ad_slots = 3
+organic_slots = 5
+mechanism = "gsp"
+search_index = "word_overlap"   # organic ranker: word_overlap (default) | bm25 | semantic | behavioral | blended
+# search_index_cfg = { n_components = 16, sem_weight = 0.5 }    # tuning for search_index = "semantic"
+# search_index_cfg = { stats_path = "experiments/data/ctr_stats.json", ctr_weight = 0.5 }  # for "behavioral"
+# search_index_cfg = { w_overlap = 1.0, w_semantic = 0.3, w_ctr = 0.6, stats_path = "experiments/data/ctr_stats.json" }  # for "blended"
+personalize = "off"             # per-user organic re-rank: off (default) | rules
+# personalize_cfg = { weight = 0.35 }
+
+[health]
+events_db = "exps/run/events.sqlite"
+utilities_db = "exps/run/utilities.sqlite"
