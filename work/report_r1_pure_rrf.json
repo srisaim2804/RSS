@@ -1,0 +1,74 @@
+{
+  "_note": "Reconstructed locally because GET /report hung indefinitely (>120s, tested twice) for this session and then blocked /report for OTHER sessions too, even though /health kept responding. This is a real, reproduced server bug — see tester feedback notes. Fields below are either (a) taken verbatim from the submission POST response, which the server confirmed and which already carries score/baselines, or (b) computed locally from the real actions_r1_pure_rrf.parquet log, or (c) reused from the earlier session's full report for fields that are per-world/per-traffic constants, not dependent on our submission (baselines, traffic_buckets, user_segments pair_counts) — each is labeled.",
+  "world_id": "w908832361965e48e",
+  "round": 1,
+  "session_id": "298ccf7b37f8496e",
+  "ranker": "pure RRF (BM25 + semantic + quality, no personalization), fit_weight=0.0",
+  "valid": true,
+  "slate_size": 20,
+  "n_pairs": 14216,
+  "n_impressions": 14400,
+  "source": "submission_response",
+  "timing": {
+    "server_validation_simulation_s": 421.3597453420007,
+    "client_total_s": 1551.9
+  },
+  "score": {
+    "expected_value_per_impression": 0.07224780675178868,
+    "sampled_value_per_impression": 0.07141805555551953,
+    "expected_total": 20807.36834451514,
+    "n_impressions_graded": 288000
+  },
+  "baselines_source": "reused from session 3990c0d18af749a4's confirmed report — per-world constants, independent of our submission",
+  "baselines": {
+    "random": {
+      "expected_value_per_impression": 0.03439413112991256
+    },
+    "bm25": {
+      "expected_value_per_impression": 0.07086650870412302
+    },
+    "semantic": {
+      "expected_value_per_impression": 0.07931630868816095
+    }
+  },
+  "deltas_vs_baselines_note": "computed locally: our score.expected_value_per_impression minus each baseline above",
+  "deltas_vs_baselines": {
+    "random": 0.03785367562187612,
+    "bm25": 0.0013812980476656591,
+    "semantic": -0.008068501936372275
+  },
+  "actions_source": "computed locally from actions_r1_pure_rrf.parquet (288,000 rows)",
+  "actions": {
+    "action_counts": {
+      "seen": 232092,
+      "click": 23251,
+      "cart": 20591,
+      "purchase": 12066
+    },
+    "unique_items_by_action": {
+      "seen": 3024,
+      "click": 2437,
+      "cart": 2382,
+      "purchase": 2094
+    },
+    "n_served_impressions": 288000
+  },
+  "submission_coverage_source": "computed locally from submission_r1_pure_rrf.parquet",
+  "submission_coverage": {
+    "unique_ranked_items": 2412,
+    "catalogue_coverage_rate": 0.02412
+  },
+  "traffic_buckets_source": "reused from session 3990c0d18af749a4's confirmed report — property of the traffic file, not our ranking",
+  "traffic_buckets": {
+    "head": {"n_pairs": 7026, "share_of_pairs": 0.4942318514350028},
+    "middle": {"n_pairs": 3966, "share_of_pairs": 0.2789814293753517},
+    "tail": {"n_pairs": 3224, "share_of_pairs": 0.22678671918964546}
+  },
+  "user_segments_source": "reused from session 3990c0d18af749a4's confirmed report — property of the traffic file, not our ranking",
+  "user_segments": {
+    "pair_counts_by_segment": {
+      "bargain": 1552, "brand_loyal": 1605, "general": 1878, "gifter": 1784,
+      "impulsive": 1967, "minimalist": 1530, "premium": 1966, "techie": 1934
+    }
+  }
+}

@@ -1,0 +1,15 @@
+# Tooling venv — recreate with:
+#   python -m venv .tester-venv && .tester-venv/Scripts/pip install pandas pyarrow numpy requests
+.tester-venv/
+
+# Docker image tar for the tester API — ~1.3GB, get it from the assignment's
+# SharePoint link, not from git. See PROGRESS.md "How to run this again".
+amd64/
+
+# Extracted public data bundle — ~500MB, re-fetch via GET /v1/bundle once the
+# container is healthy (see PROGRESS.md). Small result files elsewhere in
+# work/ (submissions, actions, reports) ARE tracked — only the raw bundle isn't.
+work/bundle_v1/
+
+__pycache__/
+*.pyc

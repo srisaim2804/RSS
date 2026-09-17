@@ -1,85 +1,143 @@
 # Report For Search Components
 
-Organic ranker for the `rss` simulator, built behind the `SearchIndex` seam,
-selected by a config key. Every row below is measured the same way: same
-`seed=0` world (catalogue/users/campaigns are seed-derived, so a shared seed is
-what makes rows comparable), 20 rounds × 200 queries = **4,000 search sessions**,
-every metric computed over that same fixed set of sessions in every arm, compared
-with `coms.health.compare_arms` (2,000-resample bootstrap, 95% CI). A move only
-counts as real if the CI excludes 0 — everything else is noise.
+## Round-by-round results
 
-## CTR by ranker combination
-
-| Ranker (cumulative) | Overall CTR | Δ vs. lexical (pp, 95% CI) | Organic CTR | Δ organic (pp, 95% CI) |
-|---|---|---|---|---|
-| **Lexical** (word overlap) — baseline | 52.12% | — | 19.45% | — |
-| Lexical *(BM25 instead of overlap)* | 52.78% | +0.66 [−0.77, +2.06] | 20.65% | +1.20 [−0.35, +2.79] |
-| Lexical + Semantic | 51.92% | −0.20 [−1.54, +1.16] | 20.11% | +0.65 [−1.00, +2.30] |
-| Lexical + Behavioral (`ctr_weight=0.5`) | 52.99% | +0.87 [−0.47, +2.29] | 19.55% | +0.09 [−1.52, +1.73] |
-| Lexical + Behavioral (`ctr_weight=0.3`, tuned) | 53.19% | +1.07 [−0.29, +2.40] | 20.23% | +0.78 [−0.92, +2.44] |
-| Lexical + Semantic + Behavioral (blended) | 52.10% | −0.02 [−1.40, +1.33] | 20.16% | +0.71 [−1.01, +2.38] |
-
-*(Organic CTR here is unconditional over all 4,000 sessions, including the
-~45% that never see an organic slot at all — counted as 0, not dropped, so
-every column compares the same population.)*
-
-## Personalization, decomposed
-
-Naively switching `personalize` on changes **two things at once**: it fetches a
-wider candidate pool (to leave room to reorder) *and* it reorders by user. These
-have to be separated to know what's actually happening. Baseline here is the
-`Lexical + Behavioral (0.5)` ranker above:
-
-| Arm | Overall CTR | Δ vs. baseline | Organic CTR | Δ organic | Purchases |
+| Round | Ranker | Expected value | Sampled value | Δ vs. BM25 baseline | Δ vs. semantic baseline |
 |---|---|---|---|---|---|
-| Baseline (personalize off, narrow pool) | 52.99% | — | 19.55% | — | 740 |
-| **+ wider pool only** (no-op reorder) | 49.91% | **−3.08 pp [−4.52,−1.67] · significant** | 22.18% | **+2.64 pp [+0.97,+4.31] · significant** | 740 (+0) |
-| **+ wider pool + real reorder** (full personalization) | 50.46% | **−2.53 pp [−3.86,−1.20] · significant** | 23.32% | **+3.77 pp [+2.18,+5.46] · significant** | 792 (+52) |
+| 1 (valid, but worse) | RRF + personalization | 0.06626 | 0.06527 | −0.0046 | −0.0131 |
+| **1** | pure RRF (BM25 + semantic + quality) | **0.07225** | 0.07142 | +0.0014 | −0.0081 |
+| **2** | + behavioral CTR (round 1 data) | not recoverable\* | 0.07225\*\* | ~flat | — |
+| **3** | + behavioral CTR (rounds 1+2 data) | **0.07443** | **0.07449** | **+0.0037** | −0.0048 |
 
-Isolating the reorder alone (full vs. pool-only, pool size held fixed): overall
-CTR +0.55 pp [−0.79, +1.92] (not significant), organic CTR +1.14 pp [−0.59, +2.77]
-(not significant), and **all +52 purchases** come from this step — the
-pool-widening step alone contributed zero purchases.
+*\*A real server bug (`/report` hangs indefinitely — reproduced 3 times, see
+the tester feedback note) meant round 2's closed-form expected value isn't
+recoverable. \*\*Round 2's sampled value is not a guess: it's the exact
+server reward formula, reverse-engineered from round 1's two known
+`(action_counts, sampled_value)` pairs — `sampled_value_per_impression =
+(1.0·purchase + 0.3·cart + 0.1·click) / n_impressions` — and verified against
+both round 1 runs to 8+ significant figures before being applied to round
+2's real, server-confirmed action log.*
+
+**Bootstrapped significance** (2,000 resamples on the real per-impression
+reward, using the formula above, applied consistently across all three
+rounds so the comparison is apples-to-apples):
+
+| Comparison | Δ | 95% CI | Significant? |
+|---|---|---|---|
+| Round 1 → Round 2 | +0.00083 | [−0.00029, +0.00193] | No |
+| Round 2 → Round 3 | +0.00224 | [+0.00116, +0.00340] | **Yes** |
+| Round 1 → Round 3 | +0.00307 | [+0.00197, +0.00419] | **Yes** |
+
+## Action-level detail, all three real rounds
+
+Every number below is from the real per-round action log (288,000 served
+impressions each). `reach_rate` is the server's own definition — verified:
+locally-recomputed reach rates for round 3 matched the server's reported
+values to 4+ decimal places before being trusted for rounds 1 and 2, where
+`/report` wasn't available (see the CI note above).
+
+| Action | R1 count | R2 count | R3 count | R1 unique items | R2 unique items | R3 unique items | R1 reach | R2 reach | R3 reach |
+|---|---|---|---|---|---|---|---|---|---|
+| seen | 232,092 | 231,996 | 230,799 | 3,024 | 2,896 | 2,984 | 97.45% | 97.12% | 97.20% |
+| click | 23,251 | 23,134 | 23,351 | 2,437 | 2,326 | 2,420 | 78.54% | 78.00% | 78.83% |
+| cart | 20,591 | 20,537 | 21,045 | 2,382 | 2,279 | 2,392 | 76.76% | 76.43% | 77.92% |
+| purchase | **12,066** | **12,333** | **12,805** | 2,094 | 1,977 | 2,071 | 67.48% | 66.30% | 67.46% |
+
+**Catalogue coverage** (distinct items the ranker actually put in a slate,
+out of 100,000): R1 2,412 (2.41%) → R2 2,304 (2.30%) → R3 2,403 (2.40%) —
+essentially flat across rounds; the behavioral channel is re-weighting
+*which* items in an already-narrow candidate set get shown, not widening or
+narrowing that set.
+
+**Traffic composition** (head/middle/tail bucket sizes, user-segment pair
+counts) is a property of each round's traffic file, not of the ranker, and
+was materially stable across all three rounds — head ~49.4%, middle
+~27.9%, tail ~22.7% of pairs in every round; per-round `/report` bundles
+this in but withholds per-bucket and per-segment scores ("omitted to avoid
+answer extraction"), so it isn't something a ranker choice can be tuned
+against.
+
+## How the ranker got here
+
+**Round 1 started with a bug that cost real score, not a rounding error.**
+The first valid submission blended a per-query Reciprocal Rank Fusion base
+(BM25 rank + semantic rank + quality rank, `k=60` — adapted from a
+teammate's approach, which independently validated at 5-12 minutes of
+real server-side simulation time and clued in that this session's earlier
+multi-hour submission times were an infrastructure problem, not a workload
+one) with a raw additive per-user personalization nudge (`price_sensitivity`
+→ prefer cheaper, `review_dependency` → prefer higher-rated — the only two
+of the bundle's 8 numeric user features with an unambiguous sign from the
+name alone). That combination scored **0.06626** — *below* both the BM25
+(0.0709) and semantic (0.0793) baselines.
+
+Diagnosis: RRF's rank gaps near the slate cutoff are tiny (`1/61 − 1/62 ≈
+0.00026`), so even a deliberately "small" additive weight (0.02) ends up
+dominating instead of nudging — it changed the **#1 item for 58% of pairs**.
+Removing it and resubmitting pure RRF in a fresh session scored **0.07225**
+— a +0.006 absolute swing from one component that was supposed to be
+minor. **Personalization's default weight is now 0.0** everywhere in this
+codebase; the mechanism is still there, documented as unvalidated, not
+deleted.
+
+**Round 2 applied the lesson properly, not just removed the bug.** Instead
+of re-adding behavioral CTR (learned from round 1's real, propensity-IPS-
+weighted action log) as another raw additive nudge, it was folded into the
+*same* RRF rank-fusion mechanism as the quality channel — a 4th ranked
+channel, not a raw score. Locally, this changed the #1 item for only 26% of
+pairs (vs. 54% for the naive additive version tested but not shipped) — a
+properly-scaled nudge. Result: +0.00083 sampled-value delta over round 1,
+**not statistically significant on its own** — round 2 alone is not
+strong evidence the behavioral channel works.
+
+**Round 3, with two rounds of real behavioral data instead of one, is where
+it becomes real.** Same rank-fused approach, same personalization left off,
+just more signal. **+0.00224 over round 2, CI excludes 0.** Cumulatively,
+round 1 → round 3 is also significant (+0.00307, CI [+0.00197, +0.00419]).
+Purchases climbed every round: 12,066 → 12,333 → **12,805** — the
+deepest, highest-weighted action in the server's own reward formula.
 
 ## What this shows
 
-**Nothing moves CTR in a statistically meaningful way on its own — except the
-personalization pool-widening side effect, which is significant and is not
-even about personalization.**
+**The ranker's real gain is small in absolute terms (+0.003 expected value,
+~4% relative over round 1) but it is statistically real, not noise, and it
+came from disciplined process, not from picking a fancier algorithm.**
 
-- **BM25 vs. plain overlap** is the largest lexical-only positive lean —
-  organic CTR +1.20 pp — but the interval still crosses 0. It comes with a real
-  cost elsewhere: total welfare fell ~7.5% because BM25 promotes different,
-  lower-margin items into the top slots.
-- **Semantic** is flat-to-negative and adds the least of any component —
-  expected, since in this simulator the click model's relevance signal *is* the
-  overlap score, so a re-rank by embedding similarity is reshuffling noise
-  relative to what actually drives clicks.
-- **Behavioral** is the best single component: it leans positive on CTR at both
-  weights tested, and aggregate welfare rose **+13.3%** at `ctr_weight=0.5`
-  while purchases held essentially flat (−1 of 741). A *lighter* weight
-  (`ctr_weight=0.3`) does even better on CTR (+1.07 pp) with strong welfare too
-  (+$2.4k) — tuning it down from the initial 0.5 guess helps.
-- **Stacking semantic + behavioral together** is CTR-neutral (−0.02 pp, not the
-  clean positive lean the light-behavioral-alone arm gets) — semantic isn't
-  pulling its weight in the blend.
-- **Personalization's headline CTR move is mostly not about personalization.**
-  Turning it on changes the candidate pool size as a side effect of how it's
-  implemented (over-fetching to leave room to reorder), and *that alone* —
-  with zero actual reordering — already produces a significant CTR drop
-  (−3.08 pp) and a significant organic-CTR rise (+2.64 pp), with **zero**
-  purchase benefit. Only once you hold the pool size fixed and isolate the real
-  per-user reordering does the true picture emerge: a small, non-significant,
-  CTR-neutral-to-positive change that is responsible for **100% of the
-  purchase gain** (+52). The naive "before/after" number (−2.53 pp CTR,
-  +52 purchases) is real as a top-line, but crediting the CTR cost to
-  "personalization reorders toward price-fit items" is only true of about a
-  fifth of it — the rest is pool size, not user modeling.
+- **A raw additive score and an RRF rank-fusion score are not
+  interchangeable**, even when the raw weight is deliberately tuned "small."
+  This cost the very first valid submission a measurable amount of real
+  score, discovered only because the result underperformed a plain baseline
+  it should have beaten. The fix generalizes: any future signal added to
+  this ranker should be fused at the rank level, not the score level, unless
+  there's a specific reason the scales are actually comparable.
+- **Behavioral learning needs more than one round of data to show up as
+  signal, not luck.** Round 2 (one round of behavioral history) moved the
+  score but the interval crossed 0 — a plausible false lead. Round 3 (two
+  rounds of history, same mechanism) is the one with a CI that excludes
+  0. Reporting round 2 alone as "it works" would have been premature.
+- **The infrastructure cost more real time than the ranker design did.**
+  Getting from "have the assignment PDF" to "one valid graded round" took
+  most of this session — wrong-architecture image, missing Docker/WSL2,
+  three multi-hour emulated attempts (one ran ~17-18 hours before dying),
+  before a teammate's own measured numbers (5-12 minutes, server-side) made
+  clear the problem was never the workload. Once running on the correct
+  architecture, all three graded rounds together took under two hours.
+- **The simulator itself has a real, reproducible bug** (`GET .../report`
+  hangs indefinitely and then blocks that endpoint for *other* sessions too,
+  while `/health` and every other endpoint stay responsive) — worked around
+  by relying on the submission response, which turns out to already carry
+  everything `/report` would have (confirmed directly: round 3's submission
+  response came back with the full baselines/actions/coverage payload, no
+  separate call needed). Full reproduction steps and two more defects are in
+  `tester/FEEDBACK.md`.
 
-**Bottom line:** the safest standalone gain is **lexical + behavioral at a
-light weight (`ctr_weight≈0.3`)** — CTR leans positive, welfare is up, nothing
-is significantly worse. Personalization's own logic is a legitimate, modest,
-purchase-positive lever, but as currently built it's bundled with a pool-size
-side effect that costs CTR for no purchase benefit — worth fixing (reorder
-within the original candidate window) before treating personalization's
-apparent CTR cost as the price of a purchases/GMV objective.
+**Bottom line:** pure RRF (BM25 + semantic + quality) is the safe floor —
+it's the only round-1 configuration that beat any baseline at all. Behavioral
+CTR, fused at the rank level and given two rounds to accumulate real signal,
+is a legitimate and *significant* improvement on top of it (+0.0037 vs. the
+BM25 baseline by round 3, up from +0.0014 in round 1). Naive per-user
+personalization, as first implemented, was not a legitimate improvement — it
+was a measured regression from a raw-score scaling mistake, and it stays
+off by default until it's re-validated properly (most likely: also folded
+into the rank-fusion mechanism, the same way behavioral CTR was, rather than
+re-tried as a raw nudge at a smaller weight).

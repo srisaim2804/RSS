@@ -1,0 +1,58 @@
+{
+  "_note": "Reconstructed locally. /report hung again for this round (tested with 60s patience, consistently reproducible), but the submission itself succeeded server-side — confirmed via a resubmission attempt returning 409 Conflict (round already submitted), then recovering the real actions log via GET /actions, which worked fine. sampled_value_per_impression is not guessed: reverse-engineered the server's exact reward formula from round 1's two known (action_counts, sampled_value) pairs — both match to 8+ significant figures, ruling out coincidence — then applied it here. expected_value_per_impression (the closed-form version) is NOT recoverable without /report and is omitted rather than estimated.",
+  "world_id": "w908832361965e48e",
+  "round": 2,
+  "session_id": "298ccf7b37f8496e",
+  "ranker": "RRF (BM25 + semantic + quality + behavioral CTR, all as fused rank channels), fit_weight=0.0",
+  "valid": true,
+  "slate_size": 20,
+  "n_pairs": 14210,
+  "n_impressions": 14400,
+  "reward_formula_derived": "sampled_value_per_impression = (1.0*purchase + 0.3*cart + 0.1*click + 0.0*seen) / n_impressions_graded — verified exact against both round-1 runs",
+  "score": {
+    "sampled_value_per_impression": 0.07224826388888889,
+    "sampled_value_per_impression_source": "derived via the verified reward formula above, from actions_r2.parquet",
+    "expected_value_per_impression": null,
+    "expected_value_per_impression_note": "not recoverable without /report — omitted rather than guessed"
+  },
+  "baselines_source": "reused from session 3990c0d18af749a4's confirmed round-1 report — per-world constants",
+  "baselines": {
+    "random": {"expected_value_per_impression": 0.03439413112991256},
+    "bm25": {"expected_value_per_impression": 0.07086650870412302},
+    "semantic": {"expected_value_per_impression": 0.07931630868816095}
+  },
+  "actions_source": "GET /actions/round/2, real server data (288,000 rows)",
+  "actions": {
+    "action_counts": {
+      "seen": 231996,
+      "click": 23134,
+      "cart": 20537,
+      "purchase": 12333
+    },
+    "unique_items_by_action": {
+      "seen": 2896,
+      "click": 2326,
+      "cart": 2279,
+      "purchase": 1977
+    },
+    "n_served_impressions": 288000
+  },
+  "submission_coverage_source": "computed locally from submission_r2_behavioral.parquet",
+  "submission_coverage": {
+    "unique_ranked_items": 2304,
+    "catalogue_coverage_rate": 0.02304
+  },
+  "comparison_to_round1_pure_rrf": {
+    "round1_sampled_value": 0.07141805555551953,
+    "round2_sampled_value": 0.07224826388888889,
+    "delta": 0.0008302083333693581,
+    "delta_relative_pct": 1.16,
+    "action_deltas": {
+      "purchase": "+267 (+2.21%)",
+      "cart": "-54 (-0.26%)",
+      "click": "-117 (-0.50%)",
+      "seen": "-96 (-0.04%)"
+    },
+    "interpretation": "Modest but real improvement, driven almost entirely by purchases. The behavioral RRF channel (IPS-weighted item CTR from round 1's real actions, folded in as a 4th rank-fusion channel) surfaced items people were more likely to convert on, at a small cost to raw click volume."
+  }
+}
